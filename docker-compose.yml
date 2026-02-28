@@ -17,7 +17,7 @@ services:
     # (useful during development with volume mounts) and then start the app
     command: sh -c "until python -c \"import socket; s=socket.socket(); s.connect(('postgres',5432)); s.close()\" 2>/dev/null; do echo waiting for postgres; sleep 1; done; pip install --no-cache-dir -r /app/requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
       timeout: 10s
       retries: 3
