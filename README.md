@@ -14,40 +14,108 @@ A Python REST API service for receiving and managing temperature measurements fr
 
 All API endpoints under `/api/` are protected with **HTTP Basic Authentication**.
 
-### Default Credentials
-- **Username:** `apiuser`
-- **Password:** `apipassword`
+**IMPORTANT:** Credentials are **NOT** provided via environment variables (even in development) for security reasons. You must explicitly provide them through one of the secure file‑based methods below.
 
-### Configuring Credentials
+### Secure Credential Management
 
-#### Via Environment Variables (Local Development)
+The service supports multiple secure methods for providing credentials (in order of security):
+
+1. **Docker Secrets** (Most Secure - for Docker Swarm)
+2. **Volume-Mounted Secret Files** (Secure - for Docker/Kubernetes)
+
+#### Method 1: Docker Secrets (Recommended for Production)
+
+Docker Secrets are encrypted and only distributed to containers that need them.
+
+**For Docker Swarm:**
+
 ```bash
-export API_USERNAME="myuser"
-export API_PASSWORD="mypassword"
-python -m uvicorn app.main:app --reload
+# Create secrets
+echo "myuser" | docker secret create api_username -
+echo "mysecurepassword" | docker secret create api_password -
+
+# Update docker-compose.yml with secrets section:
 ```
 
-#### Via Docker
+```yaml
+version: '3.8'
+
+services:
+  temperature-service:
+    image: temperature-service:latest
+    ports:
+      - "8000:8000"
+    secrets:
+      - api_username
+      - api_password
+
+secrets:
+  api_username:
+    external: true
+  api_password:
+    external: true
+```
+
+```bash
+# Deploy with: docker stack deploy -c docker-compose.yml temperature-stack
+```
+
+#### Method 2: Volume-Mounted Secret Files (Recommended for Docker Compose / Kubernetes)
+
+Store credentials in files and mount them as read-only volumes.
+
+**Step 1: Generate secrets file**
+
+```bash
+chmod +x generate-secrets.sh
+./generate-secrets.sh
+```
+
+This creates:
+- `./secrets/api_username`
+- `./secrets/api_password`
+
+**Step 2: Run with volume mount**
+
 ```bash
 docker run -p 8000:8000 \
-  -e API_USERNAME="myuser" \
-  -e API_PASSWORD="mypassword" \
+  -v ./secrets:/app/secrets:ro \
   temperature-service:latest
 ```
 
-#### Via Docker Compose
-Edit `docker-compose.yml` and update the environment section:
+Or with Docker Compose (uncomment volume section):
+
 ```yaml
-environment:
-  - API_USERNAME=myuser
-  - API_PASSWORD=mypassword
+volumes:
+  - ./secrets:/app/secrets:ro
 ```
+
+**Step 3: Update credentials**
+
+Edit the files directly:
+```bash
+echo "admin" > secrets/api_username
+echo "adminpw" > secrets/api_password
+chmod 400 secrets/*
+```
+
+<!-- keep dev insecure paragraph below when necessary -->
+If you just want something to start quickly you can set `DEV_ALLOW_INSECURE`
+(which is ignored in production). The app will log a warning and use
+``admin/admin`` credentials:
+
+```bash
+export DEV_ALLOW_INSECURE=1
+python -m uvicorn app.main:app --reload
+```
+
+(This is not recommended except for throwaway development/demo instances.)
 
 ### Making Authenticated Requests
 
 #### Using cURL
 ```bash
-curl -u apiuser:apipassword http://localhost:8000/api/measurements
+curl -u myuser:mypassword http://localhost:8000/api/measurements
 ```
 
 #### Using Python requests
@@ -57,14 +125,14 @@ from requests.auth import HTTPBasicAuth
 
 response = requests.get(
     'http://localhost:8000/api/measurements',
-    auth=HTTPBasicAuth('apiuser', 'apipassword')
+    auth=HTTPBasicAuth('myuser', 'mypassword')
 )
 ```
 
 #### Using JavaScript/Fetch
 ```javascript
-const username = 'apiuser';
-const password = 'apipassword';
+const username = 'myuser';
+const password = 'mypassword';
 const credentials = btoa(`${username}:${password}`);
 
 fetch('http://localhost:8000/api/measurements', {
@@ -84,7 +152,14 @@ hsm-backend/
 │   ├── __init__.py          # Package initialization
 │   ├── main.py              # FastAPI application and endpoints
 │   ├── models.py            # Pydantic data models
-│   └── auth.py              # Authentication logic
+│   └── auth.py              # Authentication logic (secure credential handling)
+├── secrets/                 # Credentials storage (git-ignored)
+│   ├── api_username         # Username file
+│   └── api_password         # Password file
+├── Dockerfile               # Container image definition
+├── docker-compose.yml       # Multi-container orchestration
+├── .dockerignore             # Docker build context exclusions
+├── generate-secrets.sh      # Script to generate secret files
 ├── requirements.txt         # Python dependencies
 └── README.md                # This file
 ```
@@ -182,15 +257,7 @@ Remove the container:
 docker rm temp-service
 ```
 
-#### Running with Environment Variables
-
-```bash
-docker run -d \
-  -p 8000:8000 \
-  -e PYTHONUNBUFFERED=1 \
-  --name temp-service \
-  temperature-service:latest
-```
+<!-- section removed: no environment variable credential support -->
 
 #### Advanced Usage with Volume Mounting
 
@@ -221,6 +288,11 @@ services:
     container_name: temperature-service
     environment:
       - PYTHONUNBUFFERED=1
+      # Credentials are mandatory; set via one of the secure methods described above or
+      # directly here for development. If you omit them the container will crash on
+      # startup (you'll see a 502 when trying to access the service).
+      # - API_USERNAME=devuser
+      # - API_PASSWORD=devpass
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]

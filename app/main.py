@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, TemperatureMeasurementResponse
-from app.auth import verify_credentials
+from app.auth import verify_credentials, _ensure_credentials_loaded
 from typing import List
 
 # Initialize FastAPI app
@@ -13,6 +13,12 @@ app = FastAPI(
 
 # In-memory storage for demonstrations (in production, use a database)
 measurements_storage: List[TemperatureMeasurement] = []
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Verify credentials are configured on startup"""
+    _ensure_credentials_loaded()
 
 
 @app.get("/")
