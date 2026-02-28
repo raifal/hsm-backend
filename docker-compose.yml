@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  temperature-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    container_name: temperature-service
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    volumes:
+      - ./app:/app/app
+    # Uncomment for development with auto-reload
+    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
