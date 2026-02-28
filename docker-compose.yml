@@ -11,6 +11,11 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
+    depends_on:
+      - postgres
+    # wait for the postgres service to become reachable, install requirements
+    # (useful during development with volume mounts) and then start the app
+    command: sh -c "until python -c \"import socket; s=socket.socket(); s.connect(('postgres',5432)); s.close()\" 2>/dev/null; do echo waiting for postgres; sleep 1; done; pip install --no-cache-dir -r /app/requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
       interval: 30s
@@ -28,6 +33,12 @@ services:
     image: postgres:15
     container_name: hsm-backend-db
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     environment:
       # These values should match the keys in hsm-backend.properties
       POSTGRES_USER: ${DB_USER:-admin}
