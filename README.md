@@ -4,11 +4,77 @@ A Python REST API service for receiving and managing temperature measurements fr
 
 ## Features
 
-- **POST /api/measurements** - Submit a list of temperature measurements
-- **GET /api/measurements** - Retrieve all stored measurements
-- **GET /api/measurements/{sensor_address}** - Retrieve measurements for a specific sensor
-- **DELETE /api/measurements** - Clear all measurements
-- **GET /** - Health check endpoint
+- **POST /api/measurements** - Submit a list of temperature measurements (authenticated)
+- **GET /api/measurements** - Retrieve all stored measurements (authenticated)
+- **GET /api/measurements/{sensor_address}** - Retrieve measurements for a specific sensor (authenticated)
+- **DELETE /api/measurements** - Clear all measurements (authenticated)
+- **GET /** - Health check endpoint (no authentication required)
+
+## Authentication
+
+All API endpoints under `/api/` are protected with **HTTP Basic Authentication**.
+
+### Default Credentials
+- **Username:** `apiuser`
+- **Password:** `apipassword`
+
+### Configuring Credentials
+
+#### Via Environment Variables (Local Development)
+```bash
+export API_USERNAME="myuser"
+export API_PASSWORD="mypassword"
+python -m uvicorn app.main:app --reload
+```
+
+#### Via Docker
+```bash
+docker run -p 8000:8000 \
+  -e API_USERNAME="myuser" \
+  -e API_PASSWORD="mypassword" \
+  temperature-service:latest
+```
+
+#### Via Docker Compose
+Edit `docker-compose.yml` and update the environment section:
+```yaml
+environment:
+  - API_USERNAME=myuser
+  - API_PASSWORD=mypassword
+```
+
+### Making Authenticated Requests
+
+#### Using cURL
+```bash
+curl -u apiuser:apipassword http://localhost:8000/api/measurements
+```
+
+#### Using Python requests
+```python
+import requests
+from requests.auth import HTTPBasicAuth
+
+response = requests.get(
+    'http://localhost:8000/api/measurements',
+    auth=HTTPBasicAuth('apiuser', 'apipassword')
+)
+```
+
+#### Using JavaScript/Fetch
+```javascript
+const username = 'apiuser';
+const password = 'apipassword';
+const credentials = btoa(`${username}:${password}`);
+
+fetch('http://localhost:8000/api/measurements', {
+  headers: {
+    'Authorization': `Basic ${credentials}`
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
 
 ## Project Structure
 
@@ -17,7 +83,8 @@ hsm-backend/
 ├── app/
 │   ├── __init__.py          # Package initialization
 │   ├── main.py              # FastAPI application and endpoints
-│   └── models.py            # Pydantic data models
+│   ├── models.py            # Pydantic data models
+│   └── auth.py              # Authentication logic
 ├── requirements.txt         # Python dependencies
 └── README.md                # This file
 ```
@@ -334,11 +401,11 @@ Response:
 ## Example Usage with cURL
 
 ```bash
-# Health check
+# Health check (no authentication required)
 curl http://localhost:8000/
 
-# Submit measurements
-curl -X POST http://localhost:8000/api/measurements \
+# Submit measurements (with authentication)
+curl -u apiuser:apipassword -X POST http://localhost:8000/api/measurements \
   -H "Content-Type: application/json" \
   -d '{
     "measurements": [
@@ -347,14 +414,14 @@ curl -X POST http://localhost:8000/api/measurements \
     ]
   }'
 
-# Get all measurements
-curl http://localhost:8000/api/measurements
+# Get all measurements (with authentication)
+curl -u apiuser:apipassword http://localhost:8000/api/measurements
 
-# Get measurements for specific sensor
-curl http://localhost:8000/api/measurements/sensor-001
+# Get measurements for specific sensor (with authentication)
+curl -u apiuser:apipassword http://localhost:8000/api/measurements/sensor-001
 
-# Clear measurements
-curl -X DELETE http://localhost:8000/api/measurements
+# Clear measurements (with authentication)
+curl -u apiuser:apipassword -X DELETE http://localhost:8000/api/measurements
 ```
 
 ## Technologies Used

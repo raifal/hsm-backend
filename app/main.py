@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, TemperatureMeasurementResponse
+from app.auth import verify_credentials
 from typing import List
 
 # Initialize FastAPI app
@@ -16,7 +17,7 @@ measurements_storage: List[TemperatureMeasurement] = []
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
+    """Health check endpoint (no authentication required)"""
     return {
         "service": "Temperature Measurements Service",
         "status": "running",
@@ -25,7 +26,10 @@ async def root():
 
 
 @app.post("/api/measurements", response_model=TemperatureMeasurementResponse)
-async def submit_measurements(request: TemperatureMeasurementRequest):
+async def submit_measurements(
+    request: TemperatureMeasurementRequest,
+    credentials = Depends(verify_credentials)
+):
     """
     Submit a list of temperature measurements from sensors.
     
@@ -56,7 +60,7 @@ async def submit_measurements(request: TemperatureMeasurementRequest):
 
 
 @app.get("/api/measurements", response_model=List[TemperatureMeasurement])
-async def get_measurements():
+async def get_measurements(credentials = Depends(verify_credentials)):
     """
     Retrieve all stored temperature measurements.
     
@@ -67,7 +71,10 @@ async def get_measurements():
 
 
 @app.get("/api/measurements/{sensor_address}")
-async def get_sensor_measurements(sensor_address: str):
+async def get_sensor_measurements(
+    sensor_address: str,
+    credentials = Depends(verify_credentials)
+):
     """
     Retrieve temperature measurements for a specific sensor.
     
@@ -89,7 +96,7 @@ async def get_sensor_measurements(sensor_address: str):
 
 
 @app.delete("/api/measurements")
-async def clear_measurements():
+async def clear_measurements(credentials = Depends(verify_credentials)):
     """Clear all stored measurements (for testing purposes)"""
     global measurements_storage
     count = len(measurements_storage)

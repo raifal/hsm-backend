@@ -10,6 +10,8 @@ services:
     container_name: temperature-service
     environment:
       - PYTHONUNBUFFERED=1
+      - API_USERNAME=apiuser
+      - API_PASSWORD=apipassword
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]

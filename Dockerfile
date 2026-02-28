@@ -9,6 +9,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 # Prevent Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED=1
+# API Authentication credentials (defaults)
+ENV API_USERNAME=apiuser
+ENV API_PASSWORD=apipassword
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
