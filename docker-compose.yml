@@ -24,3 +24,19 @@ services:
     # Uncomment for development with auto-reload
     # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  postgres:
+    image: postgres:15
+    container_name: hsm-backend-db
+    restart: unless-stopped
+    environment:
+      # These values should match the keys in hsm-backend.properties
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${DB_NAME:-hsm}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    driver: local
+

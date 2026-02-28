@@ -45,12 +45,24 @@ def _load_properties(properties_path: str) -> dict:
 # 2. ./hsm-backend.properties (local development)
 API_USERNAME = None
 API_PASSWORD = None
+# Database configuration loaded from properties
+DB_HOST: str | None = None
+DB_PORT: int | None = None
+DB_NAME: str | None = None
+DB_USER: str | None = None
+DB_PASSWORD: str | None = None
 
 for properties_path in ["/app/hsm-backend.properties", "./hsm-backend.properties"]:
     try:
         properties = _load_properties(properties_path)
         API_USERNAME = properties.get("api.username")
         API_PASSWORD = properties.get("api.password")
+        # database settings are kept as module-level variables too
+        DB_HOST = properties.get("db.host")
+        DB_PORT = int(properties.get("db.port")) if properties.get("db.port") else None
+        DB_NAME = properties.get("db.name")
+        DB_USER = properties.get("db.user")
+        DB_PASSWORD = properties.get("db.password")
         if API_USERNAME and API_PASSWORD:
             break
     except ValueError:

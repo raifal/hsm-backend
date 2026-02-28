@@ -1,8 +1,12 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, TemperatureMeasurementResponse
-from app.auth import verify_credentials, _ensure_credentials_loaded
+from app.auth import verify_credentials, _ensure_credentials_loaded, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 from typing import List
+
+# database imports
+from app import db
+from sqlalchemy import select
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -11,14 +15,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# In-memory storage for demonstrations (in production, use a database)
+# In-memory storage deprecated; database will hold measurements
+# keep typing annotation for reference
 measurements_storage: List[TemperatureMeasurement] = []
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Verify credentials are configured on startup"""
+    """Verify credentials and initialize database on startup"""
     _ensure_credentials_loaded()
+    # Ensure database configuration is available
+    if not all([DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD]):
+        raise RuntimeError("Database configuration missing in properties file")
+    # build connection URL and initialize engine
+    url = db.get_connection_url(DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD)
+    db.init_engine(url)
+    await db.create_tables()
 
 
 @app.get("/")
@@ -52,10 +64,17 @@ async def submit_measurements(
         if not request.measurements:
             raise HTTPException(status_code=400, detail="No measurements provided")
         
-        # Process and store measurements
-        for measurement in request.measurements:
-            measurements_storage.append(measurement)
-        
+        # persist measurements in database
+        async with db.get_session() as session:
+            for measurement in request.measurements:
+                model = db.TemperatureMeasurementModel(
+                    sensor_address=measurement.sensorAddress,
+                    temperature=measurement.temperature,
+                    timestamp=measurement.timestamp
+                )
+                session.add(model)
+            await session.commit()
+
         return TemperatureMeasurementResponse(
             success=True,
             message=f"Successfully received {len(request.measurements)} temperature measurement(s)",
@@ -68,12 +87,17 @@ async def submit_measurements(
 @app.get("/api/measurements", response_model=List[TemperatureMeasurement])
 async def get_measurements(credentials = Depends(verify_credentials)):
     """
-    Retrieve all stored temperature measurements.
-    
-    Returns:
-        List of all temperature measurements stored in the service
+    Retrieve all stored temperature measurements from the database.
     """
-    return measurements_storage
+    async with db.get_session() as session:
+        result = await session.execute(select(db.TemperatureMeasurementModel))
+        rows = result.scalars().all()
+    # convert to Pydantic models
+    return [TemperatureMeasurement(
+        sensorAddress=r.sensor_address,
+        temperature=r.temperature,
+        timestamp=r.timestamp
+    ) for r in rows]
 
 
 @app.get("/api/measurements/{sensor_address}")
@@ -90,23 +114,38 @@ async def get_sensor_measurements(
     Returns:
         List of measurements for the specified sensor
     """
-    sensor_measurements = [
-        m for m in measurements_storage 
-        if m.sensorAddress == sensor_address
-    ]
-    
-    if not sensor_measurements:
+    async with db.get_session() as session:
+        result = await session.execute(
+            select(db.TemperatureMeasurementModel)
+            .where(db.TemperatureMeasurementModel.sensor_address == sensor_address)
+        )
+        rows = result.scalars().all()
+
+    if not rows:
         return {"error": f"No measurements found for sensor {sensor_address}", "data": []}
-    
-    return {"sensor_address": sensor_address, "data": sensor_measurements}
+
+    measurements = [
+        TemperatureMeasurement(
+            sensorAddress=r.sensor_address,
+            temperature=r.temperature,
+            timestamp=r.timestamp
+        ) for r in rows
+    ]
+
+    return {"sensor_address": sensor_address, "data": measurements}
 
 
 @app.delete("/api/measurements")
 async def clear_measurements(credentials = Depends(verify_credentials)):
     """Clear all stored measurements (for testing purposes)"""
-    global measurements_storage
-    count = len(measurements_storage)
-    measurements_storage = []
+    async with db.get_session() as session:
+        result = await session.execute(select(db.TemperatureMeasurementModel))
+        rows = result.scalars().all()
+        count = len(rows)
+        if count > 0:
+            for row in rows:
+                await session.delete(row)
+            await session.commit()
     return {"message": f"Cleared {count} measurements"}
 
 
