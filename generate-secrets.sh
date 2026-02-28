@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to generate test secrets for Docker Secrets usage
+# Script to generate secret files for local development
 
 mkdir -p ./secrets
 
@@ -19,6 +19,4 @@ echo "✓ Secrets generated in ./secrets/ directory"
 echo "  Username: $USERNAME"
 echo "  Password: (from ./secrets/api_password)"
 echo ""
-echo "For Docker Swarm, use: docker secret create"
-echo "  docker secret create api_username ./secrets/api_username"
-echo "  docker secret create api_password ./secrets/api_password"
+echo "These files will be mounted to the container at /app/secrets/"

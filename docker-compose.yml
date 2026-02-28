@@ -10,10 +10,6 @@ services:
     container_name: temperature-service
     environment:
       - PYTHONUNBUFFERED=1
-      # Credentials must be provided via secret files or Docker secrets.
-      # The container will exit during startup if they are missing. For
-      # quick local testing you can still use
-      - DEV_ALLOW_INSECURE=1
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
@@ -23,20 +19,8 @@ services:
       start_period: 5s
     volumes:
       - ./app:/app/app
-      # Mount credentials from a local secrets file
-      # Uncomment to use secrets from volume mount
-      # - ./secrets:/app/secrets:ro
+      # Mount configuration from properties file
+      - ${HSM_BACKEND_PROPERTIES_FILE:-./hsm-backend.properties}:/app/hsm-backend.properties:ro
     # Uncomment for development with auto-reload
     # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    # 
-    # For Docker Swarm secrets (production):
-    # secrets:
-    #   - api_username
-    #   - api_password
-    #
-    # secrets:
-    #   api_username:
-    #     external: true
-    #   api_password:
-    #     external: true
 
