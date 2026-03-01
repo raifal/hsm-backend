@@ -4,7 +4,7 @@ from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, Te
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
 from app.auth import verify_credentials, _ensure_credentials_loaded, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 from typing import Dict, List
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
 
 # database imports
@@ -20,6 +20,14 @@ class TemperatureMeasurementCreate(BaseModel):
     temperature: float
     timestamp: datetime
 
+    @field_validator('timestamp', mode='after')
+    @classmethod
+    def convert_timezone_aware_to_naive(cls, v):
+        """Convert timezone-aware datetime to naive UTC datetime for database compatibility."""
+        if isinstance(v, datetime) and v.tzinfo is not None:
+            return v.replace(tzinfo=None)
+        return v
+
 class TemperatureMeasurementRead(TemperatureMeasurementCreate):
     id: int
 
@@ -27,6 +35,14 @@ class TemperatureMeasurementRead(TemperatureMeasurementCreate):
 class MeasurementItem(BaseModel):
     temperature: float
     timestamp: datetime
+
+    @field_validator('timestamp', mode='after')
+    @classmethod
+    def convert_timezone_aware_to_naive(cls, v):
+        """Convert timezone-aware datetime to naive UTC datetime for database compatibility."""
+        if isinstance(v, datetime) and v.tzinfo is not None:
+            return v.replace(tzinfo=None)
+        return v
 
 
 class SensorDayMeasurements(BaseModel):
