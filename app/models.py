@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
+
+from app.sensor import Sensor
 
 
 class TemperatureMeasurement(BaseModel):

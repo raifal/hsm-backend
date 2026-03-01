@@ -5,17 +5,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: temperature-service
     ports:
       - "8000:8000"
-    container_name: temperature-service
     environment:
       - PYTHONUNBUFFERED=1
-    restart: unless-stopped
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-hsm}
+      - DB_USER=${DB_USER:-hsmuser}
+      - DB_PASSWORD=${DB_PASSWORD:-hsmpassword}
     depends_on:
       - postgres
-    # wait for the postgres service to become reachable, install requirements
-    # (useful during development with volume mounts) and then start the app
-    command: sh -c "until python -c \"import socket; s=socket.socket(); s.connect(('postgres',5432)); s.close()\" 2>/dev/null; do echo waiting for postgres; sleep 1; done; pip install --no-cache-dir -r /app/requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
       interval: 30s
@@ -24,30 +25,27 @@ services:
       start_period: 5s
     volumes:
       - ./app:/app/app
-      # Mount configuration from properties file
       - ${HSM_BACKEND_PROPERTIES_FILE:-./hsm-backend.properties}:/app/hsm-backend.properties:ro
-    # Uncomment for development with auto-reload
-    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres:
     image: postgres:15
     container_name: hsm-backend-db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-hsmuser}"]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 5s
     environment:
-      # These values should match the keys in hsm-backend.properties
-      POSTGRES_USER: ${DB_USER:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_USER: ${DB_USER:-hsmuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hsmpassword}
       POSTGRES_DB: ${DB_NAME:-hsm}
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
 volumes:
   pgdata:
     driver: local
-

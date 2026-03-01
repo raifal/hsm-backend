@@ -436,6 +436,21 @@ curl -u admin:admin http://localhost:8000/api/measurements/sensor-001
 curl -u admin:admin -X DELETE http://localhost:8000/api/measurements
 ```
 
+## Beispiel: Sensor anlegen per curl
+
+```bash
+curl -u admin:admin -X POST \
+  http://localhost:8000/api/sensors \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sensorAddress": "28-00000a1b2c3d",
+    "active": true,
+    "color": "#ff0000",
+    "name": "Keller Sensor",
+    "groupName": "Keller"
+  }'
+```
+
 ## Technologies Used
 
 - **FastAPI** - Modern Python web framework for building APIs

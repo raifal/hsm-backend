@@ -1,18 +1,29 @@
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
 from datetime import datetime
 from typing import List
 
 # Base class for declarative models
 Base = declarative_base()
 
+class SensorModel(Base):
+    __tablename__ = "sensors"
+    sensorAddress = Column(String, primary_key=True, index=True)
+    active = Column(Boolean, default=True)
+    color = Column(String)
+    name = Column(String)
+    groupName = Column(String)
+
+
+from sqlalchemy import ForeignKey
 
 class TemperatureMeasurementModel(Base):
     __tablename__ = "temperature_measurements"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    sensor_address = Column(String, nullable=False)
+    sensor_address = Column(String, ForeignKey("sensors.sensorAddress"), nullable=False)
     temperature = Column(Float, nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
 
