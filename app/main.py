@@ -97,8 +97,25 @@ async def root():
 
 @app.post("/api/measurements", response_model=TemperatureMeasurementRead)
 async def create_measurement(measurement: TemperatureMeasurementCreate, credentials=Depends(verify_credentials)):
-    """Submit a temperature measurement from a sensor."""
+    """Submit a temperature measurement from a sensor. Creates sensor if it doesn't exist."""
     async with get_session() as session:
+        # Ensure sensor exists, create if necessary
+        result = await session.execute(
+            select(SensorModel).where(SensorModel.sensorAddress == measurement.sensor_address)
+        )
+        sensor = result.scalar_one_or_none()
+        if not sensor:
+            sensor = SensorModel(
+                sensorAddress=measurement.sensor_address,
+                active=True,
+                color="",
+                name="",
+                groupName=""
+            )
+            session.add(sensor)
+            await session.flush()
+        
+        # Create and store measurement
         db_measurement = TemperatureMeasurementModel(**measurement.dict())
         session.add(db_measurement)
         await session.commit()
@@ -108,10 +125,27 @@ async def create_measurement(measurement: TemperatureMeasurementCreate, credenti
 
 @app.post("/api/measurements/batch", response_model=TemperatureMeasurementResponse)
 async def create_measurements_batch(request: TemperatureMeasurementRequest, credentials=Depends(verify_credentials)):
-    """Submit a batch of temperature measurements from one or more sensors."""
+    """Submit a batch of temperature measurements from one or more sensors. Creates sensors if they don't exist."""
     async with get_session() as session:
         count = 0
         for measurement in request.measurements:
+            # Ensure sensor exists, create if necessary
+            result = await session.execute(
+                select(SensorModel).where(SensorModel.sensorAddress == measurement.sensorAddress)
+            )
+            sensor = result.scalar_one_or_none()
+            if not sensor:
+                sensor = SensorModel(
+                    sensorAddress=measurement.sensorAddress,
+                    active=True,
+                    color="",
+                    name="",
+                    groupName=""
+                )
+                session.add(sensor)
+                await session.flush()
+            
+            # Create and store measurement
             db_measurement = TemperatureMeasurementModel(
                 sensor_address=measurement.sensorAddress,
                 temperature=measurement.temperature,
