@@ -4,7 +4,8 @@ A Python REST API service for receiving and managing temperature measurements fr
 
 ## Features
 
-- **POST /api/measurements** - Submit a list of temperature measurements (authenticated)
+- **POST /api/measurements** - Submit a single temperature measurement (authenticated)
+- **POST /api/measurements/batch** - Submit a batch of temperature measurements (authenticated)
 - **GET /api/measurements** - Retrieve all stored measurements (authenticated)
 - **GET /api/measurements/day/{date}** - Retrieve all measurements for a specific day grouped by sensor address (authenticated)
 - **GET /api/measurements/{sensor_address}** - Retrieve measurements for a specific sensor (authenticated)
@@ -306,8 +307,30 @@ Run Docker commands with sudo if necessary, or add your user to the docker group
 
 ## API Endpoints
 
-### 1. Submit Temperature Measurements
+### 1. Submit Single Temperature Measurement
 **POST** `/api/measurements`
+
+Request body:
+```json
+{
+  "sensor_address": "sensor-001",
+  "temperature": 22.5,
+  "timestamp": "2026-02-28T10:30:00"
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "sensor_address": "sensor-001",
+  "temperature": 22.5,
+  "timestamp": "2026-02-28T10:30:00"
+}
+```
+
+### 2. Submit Batch of Temperature Measurements
+**POST** `/api/measurements/batch`
 
 Request body:
 ```json
@@ -336,45 +359,45 @@ Response:
 }
 ```
 
-### 2. Get All Measurements
+### 3. Get All Measurements
 **GET** `/api/measurements`
 
 Response:
 ```json
 [
   {
-    "sensorAddress": "sensor-001",
+    "id": 1,
+    "sensor_address": "sensor-001",
     "temperature": 22.5,
     "timestamp": "2026-02-28T10:30:00"
   },
   {
-    "sensorAddress": "sensor-002",
+    "id": 2,
+    "sensor_address": "sensor-002",
     "temperature": 18.3,
     "timestamp": "2026-02-28T10:30:01"
   }
 ]
 ```
 
-### 3. Get Measurements for Specific Sensor
+### 4. Get Measurements for Specific Sensor
 **GET** `/api/measurements/{sensor_address}`
 
 Example: `GET /api/measurements/sensor-001`
 
 Response:
 ```json
-{
-  "sensor_address": "sensor-001",
-  "data": [
-    {
-      "sensorAddress": "sensor-001",
-      "temperature": 22.5,
-      "timestamp": "2026-02-28T10:30:00"
-    }
-  ]
-}
+[
+  {
+    "id": 1,
+    "sensor_address": "sensor-001",
+    "temperature": 22.5,
+    "timestamp": "2026-02-28T10:30:00"
+  }
+]
 ```
 
-### 4. Get Measurements for a Specific Day (Grouped by Sensor)
+### 5. Get Measurements for a Specific Day (Grouped by Sensor)
 **GET** `/api/measurements/day/{date}`
 
 Date format: `YYYY-MM-DD`
@@ -409,7 +432,7 @@ Response:
 ]
 ```
 
-### 5. Clear All Measurements
+### 6. Clear All Measurements
 **DELETE** `/api/measurements`
 
 Response:
@@ -419,7 +442,7 @@ Response:
 }
 ```
 
-### 6. Health Check
+### 7. Health Check
 **GET** `/`
 
 Response:
@@ -452,8 +475,17 @@ Response:
 # Health check (no authentication required)
 curl http://localhost:8000/
 
-# Submit measurements (with authentication)
+# Submit a single measurement (with authentication)
 curl -u admin:admin -X POST http://localhost:8000/api/measurements \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sensor_address": "sensor-001",
+    "temperature": 22.5,
+    "timestamp": "2026-02-28T10:30:00"
+  }'
+
+# Submit a batch of measurements (with authentication)
+curl -u admin:admin -X POST http://localhost:8000/api/measurements/batch \
   -H "Content-Type: application/json" \
   -d '{
     "measurements": [

@@ -90,6 +90,29 @@ async def create_measurement(measurement: TemperatureMeasurementCreate, credenti
         return db_measurement
 
 
+@app.post("/api/measurements/batch", response_model=TemperatureMeasurementResponse)
+async def create_measurements_batch(request: TemperatureMeasurementRequest, credentials=Depends(verify_credentials)):
+    """Submit a batch of temperature measurements from one or more sensors."""
+    async with get_session() as session:
+        count = 0
+        for measurement in request.measurements:
+            db_measurement = TemperatureMeasurementModel(
+                sensor_address=measurement.sensorAddress,
+                temperature=measurement.temperature,
+                timestamp=measurement.timestamp
+            )
+            session.add(db_measurement)
+            count += 1
+        
+        await session.commit()
+        
+        return TemperatureMeasurementResponse(
+            success=True,
+            message=f"Successfully received {count} temperature measurement(s)",
+            measurements_received=count
+        )
+
+
 @app.get("/api/measurements", response_model=List[TemperatureMeasurementRead])
 async def list_measurements(credentials=Depends(verify_credentials)):
     """Retrieve all stored temperature measurements from the database."""
