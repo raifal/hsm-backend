@@ -60,9 +60,9 @@ for properties_path in ["/app/hsm-backend.properties", "./hsm-backend.properties
         # database settings are kept as module-level variables too
         DB_HOST = properties.get("db.host")
         DB_PORT = int(properties.get("db.port")) if properties.get("db.port") else None
-        DB_NAME = properties.get("db.name")
-        DB_USER = properties.get("db.user")
-        DB_PASSWORD = properties.get("db.password")
+        DB_NAME = properties.get("db.name") or properties.get("POSTGRES_DB")
+        DB_USER = properties.get("db.user") or properties.get("POSTGRES_USER")
+        DB_PASSWORD = properties.get("db.password") or properties.get("POSTGRES_PASSWORD")
         if API_USERNAME and API_PASSWORD:
             break
     except ValueError:
