@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, TemperatureMeasurementResponse
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
 from app.auth import verify_credentials, _ensure_credentials_loaded, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
-from typing import List
+from typing import Dict, List
 from pydantic import BaseModel
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
 
@@ -12,7 +12,7 @@ from app import db
 from sqlalchemy import select
 from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 # Pydantic Modelle für Messungen
 class TemperatureMeasurementCreate(BaseModel):
@@ -22,6 +22,16 @@ class TemperatureMeasurementCreate(BaseModel):
 
 class TemperatureMeasurementRead(TemperatureMeasurementCreate):
     id: int
+
+
+class MeasurementItem(BaseModel):
+    temperature: float
+    timestamp: datetime
+
+
+class SensorDayMeasurements(BaseModel):
+    sensor_address: str
+    measurements: List[MeasurementItem]
 
 # Pydantic Modelle für Sensoren
 class SensorCreate(BaseModel):
@@ -87,6 +97,36 @@ async def list_measurements(credentials=Depends(verify_credentials)):
         result = await session.execute(select(TemperatureMeasurementModel))
         measurements = result.scalars().all()
         return measurements
+
+
+@app.get("/api/measurements/day/{target_date}", response_model=List[SensorDayMeasurements])
+async def list_measurements_by_day(target_date: date, credentials=Depends(verify_credentials)):
+    """Retrieve all temperature measurements for a given day, grouped by sensor address."""
+    day_start = datetime.combine(target_date, datetime.min.time())
+    day_end = day_start + timedelta(days=1)
+
+    async with get_session() as session:
+        result = await session.execute(
+            select(TemperatureMeasurementModel)
+            .where(TemperatureMeasurementModel.timestamp >= day_start)
+            .where(TemperatureMeasurementModel.timestamp < day_end)
+            .order_by(TemperatureMeasurementModel.sensor_address, TemperatureMeasurementModel.timestamp)
+        )
+        measurements = result.scalars().all()
+
+    grouped: Dict[str, List[MeasurementItem]] = {}
+    for measurement in measurements:
+        grouped.setdefault(measurement.sensor_address, []).append(
+            MeasurementItem(
+                temperature=measurement.temperature,
+                timestamp=measurement.timestamp,
+            )
+        )
+
+    return [
+        SensorDayMeasurements(sensor_address=sensor_address, measurements=entries)
+        for sensor_address, entries in grouped.items()
+    ]
 
 
 @app.get("/api/measurements/{measurement_id}", response_model=TemperatureMeasurementRead)

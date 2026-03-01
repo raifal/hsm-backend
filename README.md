@@ -6,6 +6,7 @@ A Python REST API service for receiving and managing temperature measurements fr
 
 - **POST /api/measurements** - Submit a list of temperature measurements (authenticated)
 - **GET /api/measurements** - Retrieve all stored measurements (authenticated)
+- **GET /api/measurements/day/{date}** - Retrieve all measurements for a specific day grouped by sensor address (authenticated)
 - **GET /api/measurements/{sensor_address}** - Retrieve measurements for a specific sensor (authenticated)
 - **DELETE /api/measurements** - Clear all measurements (authenticated)
 - **GET /** - Health check endpoint (no authentication required)
@@ -373,7 +374,42 @@ Response:
 }
 ```
 
-### 4. Clear All Measurements
+### 4. Get Measurements for a Specific Day (Grouped by Sensor)
+**GET** `/api/measurements/day/{date}`
+
+Date format: `YYYY-MM-DD`
+
+Example: `GET /api/measurements/day/2026-02-28`
+
+Response:
+```json
+[
+  {
+    "sensor_address": "sensor-001",
+    "measurements": [
+      {
+        "temperature": 22.5,
+        "timestamp": "2026-02-28T10:30:00"
+      },
+      {
+        "temperature": 22.8,
+        "timestamp": "2026-02-28T11:00:00"
+      }
+    ]
+  },
+  {
+    "sensor_address": "sensor-002",
+    "measurements": [
+      {
+        "temperature": 18.3,
+        "timestamp": "2026-02-28T10:30:01"
+      }
+    ]
+  }
+]
+```
+
+### 5. Clear All Measurements
 **DELETE** `/api/measurements`
 
 Response:
@@ -383,7 +419,7 @@ Response:
 }
 ```
 
-### 5. Health Check
+### 6. Health Check
 **GET** `/`
 
 Response:
@@ -428,6 +464,9 @@ curl -u admin:admin -X POST http://localhost:8000/api/measurements \
 
 # Get all measurements (with authentication)
 curl -u admin:admin http://localhost:8000/api/measurements
+
+# Get all measurements for a specific day (grouped by sensor)
+curl -u admin:admin http://localhost:8000/api/measurements/day/2026-02-28
 
 # Get measurements for specific sensor (with authentication)
 curl -u admin:admin http://localhost:8000/api/measurements/sensor-001
