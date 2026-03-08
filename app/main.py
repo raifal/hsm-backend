@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, TemperatureMeasurementResponse
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
@@ -65,6 +67,17 @@ app = FastAPI(
     title="Temperature Measurements Service",
     description="REST API for submitting temperature measurements from sensors",
     version="1.0.0"
+)
+
+# Allow browser preflight (OPTIONS) and cross-origin calls from frontend apps.
+cors_origins_raw = os.getenv("CORS_ALLOW_ORIGINS", "*")
+cors_allow_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()] or ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_allow_origins,
+    allow_credentials="*" not in cors_allow_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # In-memory storage deprecated; database will hold measurements

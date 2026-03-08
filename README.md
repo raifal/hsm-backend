@@ -232,6 +232,7 @@ services:
     container_name: temperature-service
     environment:
       - PYTHONUNBUFFERED=1
+      - CORS_ALLOW_ORIGINS=http://localhost:4200
     restart: unless-stopped
     volumes:
       - ./app:/app/app
