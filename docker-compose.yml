@@ -22,6 +22,8 @@ services:
     volumes:
       - ./app:/app/app
       - ${HSM_BACKEND_PROPERTIES_FILE:-./hsm-backend.properties}:/app/hsm-backend.properties:ro
+    networks:
+      - hsm-network
 
   postgres:
     image: postgres:15
@@ -40,7 +42,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ${HSM_BACKEND_PROPERTIES_FILE:-./hsm-backend.properties}:/app/hsm-backend.properties:ro
+    networks:
+      - hsm-network
 
 volumes:
   pgdata:
     driver: local
+
+networks:
+  hsm-network:
+    external: true
+    name: hsm-network
+
