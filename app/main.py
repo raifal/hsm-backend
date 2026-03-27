@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 # Pydantic Modelle für Messungen
 class TemperatureMeasurementCreate(BaseModel):
@@ -162,7 +163,7 @@ async def create_measurements_batch(request: TemperatureMeasurementRequest, cred
             db_measurement = TemperatureMeasurementModel(
                 sensor_address=measurement.sensorAddress,
                 temperature=measurement.temperature,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(ZoneInfo("Europe/Berlin")).replace(tzinfo=None)
             )
             session.add(db_measurement)
             count += 1
