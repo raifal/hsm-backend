@@ -162,7 +162,7 @@ async def create_measurements_batch(request: TemperatureMeasurementRequest, cred
             # Create and store measurement
             db_measurement = TemperatureMeasurementModel(
                 sensor_address=measurement.sensorAddress,
-                temperature=measurement.temperature,
+                temperature=measurement.temperature / 100,
                 timestamp=datetime.now(ZoneInfo("Europe/Berlin")).replace(tzinfo=None)
             )
             session.add(db_measurement)
