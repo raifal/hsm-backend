@@ -162,7 +162,7 @@ async def create_measurements_batch(request: TemperatureMeasurementRequest, cred
             db_measurement = TemperatureMeasurementModel(
                 sensor_address=measurement.sensorAddress,
                 temperature=measurement.temperature,
-                timestamp=measurement.timestamp
+                timestamp=datetime.utcnow()
             )
             session.add(db_measurement)
             count += 1
