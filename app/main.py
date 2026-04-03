@@ -1,7 +1,10 @@
 import os
+import logging
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, TemperatureMeasurementResponse
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
 from app.auth import verify_credentials, _ensure_credentials_loaded, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
@@ -70,6 +73,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
+logger = logging.getLogger("app.request_validation")
+
 # Allow browser preflight (OPTIONS) and cross-origin calls from frontend apps.
 cors_origins_raw = os.getenv("CORS_ALLOW_ORIGINS", "*")
 cors_allow_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()] or ["*"]
@@ -80,6 +85,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log invalid request payloads to simplify debugging on the server side."""
+    body_bytes = await request.body()
+    body_text = body_bytes.decode("utf-8", errors="replace") if body_bytes else ""
+    if len(body_text) > 2000:
+        body_text = body_text[:2000] + "...<truncated>"
+
+    headers = dict(request.headers)
+    if "authorization" in headers:
+        headers["authorization"] = "***"
+
+    logger.warning(
+        "Request validation failed: method=%s path=%s query=%s headers=%s body=%s errors=%s",
+        request.method,
+        request.url.path,
+        str(request.query_params),
+        headers,
+        body_text,
+        exc.errors(),
+    )
+
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 # In-memory storage deprecated; database will hold measurements
 # keep typing annotation for reference
