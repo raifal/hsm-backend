@@ -13,7 +13,7 @@ class SensorModel(Base):
     color = Column(String)
     name = Column(String)
     groupName = Column(String)
-    linetype = Column(String, default="")
+    linetype = Column(String, default="", nullable=False)
 
 
 from sqlalchemy import ForeignKey
@@ -56,5 +56,8 @@ async def create_tables():
         raise RuntimeError("Database engine not initialized")
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Keep existing installations compatible by adding the new column if missing.
-        await conn.execute(text("ALTER TABLE sensors ADD COLUMN IF NOT EXISTS linetype VARCHAR"))
+        # Keep existing installations compatible and normalize old NULL values.
+        await conn.execute(text("ALTER TABLE sensors ADD COLUMN IF NOT EXISTS linetype VARCHAR DEFAULT ''"))
+        await conn.execute(text("UPDATE sensors SET linetype = '' WHERE linetype IS NULL"))
+        await conn.execute(text("ALTER TABLE sensors ALTER COLUMN linetype SET DEFAULT ''"))
+        await conn.execute(text("ALTER TABLE sensors ALTER COLUMN linetype SET NOT NULL"))
