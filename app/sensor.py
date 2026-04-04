@@ -8,3 +8,4 @@ class Sensor(Base):
     color = Column(String)
     name = Column(String)
     groupName = Column(String)
+    linetype = Column(String, default="")

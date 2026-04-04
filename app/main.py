@@ -62,6 +62,7 @@ class SensorCreate(BaseModel):
     color: str = ""
     name: str = ""
     groupName: str = ""
+    linetype: str = ""
 
 class SensorRead(SensorCreate):
     pass
@@ -154,7 +155,8 @@ async def create_measurement(measurement: TemperatureMeasurementCreate, credenti
                 active=True,
                 color="",
                 name="",
-                groupName=""
+                groupName="",
+                linetype=""
             )
             session.add(sensor)
             await session.flush()
@@ -184,7 +186,8 @@ async def create_measurements_batch(request: TemperatureMeasurementRequest, cred
                     active=True,
                     color="",
                     name="",
-                    groupName=""
+                    groupName="",
+                    linetype=""
                 )
                 session.add(sensor)
                 await session.flush()

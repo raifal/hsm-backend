@@ -1,9 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import Column, Integer, String, Float, DateTime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, text
 from datetime import datetime
-from typing import List
 
 # Base class for declarative models
 Base = declarative_base()
@@ -15,6 +13,7 @@ class SensorModel(Base):
     color = Column(String)
     name = Column(String)
     groupName = Column(String)
+    linetype = Column(String, default="")
 
 
 from sqlalchemy import ForeignKey
@@ -57,3 +56,5 @@ async def create_tables():
         raise RuntimeError("Database engine not initialized")
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Keep existing installations compatible by adding the new column if missing.
+        await conn.execute(text("ALTER TABLE sensors ADD COLUMN IF NOT EXISTS linetype VARCHAR"))
