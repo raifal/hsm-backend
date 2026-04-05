@@ -51,6 +51,8 @@ DB_PORT: int | None = None
 DB_NAME: str | None = None
 DB_USER: str | None = None
 DB_PASSWORD: str | None = None
+# External service API keys
+OPENWEATHERMAP_APIKEY: str | None = None
 
 for properties_path in ["/app/hsm-backend.properties", "./hsm-backend.properties"]:
     try:
@@ -63,6 +65,8 @@ for properties_path in ["/app/hsm-backend.properties", "./hsm-backend.properties
         DB_NAME = properties.get("db.name") or properties.get("POSTGRES_DB")
         DB_USER = properties.get("db.user") or properties.get("POSTGRES_USER")
         DB_PASSWORD = properties.get("db.password") or properties.get("POSTGRES_PASSWORD")
+        # External service API keys
+        OPENWEATHERMAP_APIKEY = properties.get("openweathermap.apikey")
         if API_USERNAME and API_PASSWORD:
             break
     except ValueError:

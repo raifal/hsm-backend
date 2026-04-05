@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +8,8 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.models import TemperatureMeasurement, TemperatureMeasurementRequest, TemperatureMeasurementResponse
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
-from app.auth import verify_credentials, _ensure_credentials_loaded, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from app.auth import verify_credentials, _ensure_credentials_loaded, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, OPENWEATHERMAP_APIKEY
+from app import weather
 from typing import Dict, List
 from pydantic import BaseModel, field_validator
 from app.db import get_session, TemperatureMeasurementModel, SensorModel
@@ -74,7 +76,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+app_logger = logging.getLogger("app")
 logger = logging.getLogger("app.request_validation")
+
 
 # Allow browser preflight (OPTIONS) and cross-origin calls from frontend apps.
 cors_origins_raw = os.getenv("CORS_ALLOW_ORIGINS", "*")
@@ -128,6 +132,14 @@ async def startup_event():
     url = db.get_connection_url(DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD)
     db.init_engine(url)
     await db.create_tables()
+    
+    # Start OpenWeatherMap data fetching task if API key is configured
+    if OPENWEATHERMAP_APIKEY:
+        asyncio.create_task(weather.weather_fetch_task(OPENWEATHERMAP_APIKEY))
+        app_logger.info("Started OpenWeatherMap weather fetch task")
+    else:
+        app_logger.warning("OpenWeatherMap API key not configured in properties file (openweathermap.apikey)")
+
 
 
 @app.get("/")
