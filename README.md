@@ -4,7 +4,7 @@ A Python REST API service for receiving and managing temperature measurements fr
 
 ## Features
 
-- Rest Service and database for HSM
+- Rest Service and Database for HSM
 
 ## Architecture
 
