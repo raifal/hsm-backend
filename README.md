@@ -19,7 +19,7 @@ flowchart TD
         Browser[Web Browser]
     end
 
-    AU[Arduino Uno \n hsm-arduino]
+    AU[Arduino Uno \n (hsm-arduino)]
 
     %% Raspberry Pi 5 Layer
     subgraph RaspberryPi[Raspberry Pi 5]
