@@ -19,13 +19,13 @@ flowchart TD
         Browser[Web Browser]
     end
 
-    AU[Arduino Uno\n(hsm-arduino)]
+    AU[Arduino Uno\n((hsm-arduino))]
 
     %% Raspberry Pi 5 Layer
     subgraph RaspberryPi[Raspberry Pi 5]
-        Webapp[Web Application\n(hsm-webapp2)]
-        Backend[Backend Rest Service\n(hsm-backend)]
-        DB[Database Server\n(postgres)]
+        Webapp[Web Application\n((hsm-webapp2))]
+        Backend[Backend Rest Service\n((hsm-backend))]
+        DB[Database Server\n((postgres))]
     end
 
     %% Externe Services Layer
